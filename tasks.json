@@ -1,0 +1,5 @@
+{
+  "version": "0.1.0",
+  "command": "node_modules/electron/dist/Electron.app",
+  "args": ["app/main.js"]
+}
