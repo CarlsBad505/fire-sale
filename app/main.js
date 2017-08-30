@@ -17,8 +17,10 @@ const getFileFromUser = exports.getFileFromUser = function(targetWindow) {
 
 const openFile = exports.openFile = function(targetWindow, file) {
   var content = fs.readFileSync(file).toString();
+  app.addRecentDocument(file);
+  targetWindow.setRepresentedFilename(file);
   targetWindow.webContents.send('file-opened', file, content);
-}
+};
 
 const createWindow = exports.createWindow = function() {
   let x, y;
@@ -39,7 +41,41 @@ const createWindow = exports.createWindow = function() {
     newWindow = null;
   });
   return newWindow;
-}
+};
+
+const saveHtml = exports.saveHtml = function(targetWindow, content) {
+  var file = dialog.showSaveDialog(targetWindow, {
+    title: 'Save HTML',
+    defaultPath: app.getPath('documents'),
+    filters: [
+      { name: 'HTML Files', extensions: ['html', 'htm'] }
+    ]
+  });
+  if (!file) return;
+  fs.writeFileSync(file, content);
+};
+
+const saveMarkdown = exports.saveMarkdown = function(targetWindow, file, content) {
+  // if (!file) {
+  //   file = dialog.showSaveDialog(targetWindow, {
+  //     title: 'Save Markdown',
+  //     defaultPath: app.getPath('documents'),
+  //     filters: [
+  //       { name: 'Markdown Files', extensions: ['md', 'markdown'] }
+  //     ]
+  //   });
+  // }
+  var file = dialog.showSaveDialog(targetWindow, {
+    title: 'Save Markdown',
+    defaultPath: app.getPath('documents'),
+    filters: [
+      { name: 'Markdown Files', extensions: ['md', 'markdown'] }
+    ]
+  });
+  if (!file) return;
+  fs.writeFileSync(file, content);
+  openFile(file)
+};
 
 app.on('ready', function() {
   createWindow();
@@ -55,4 +91,13 @@ app.on('activate', function(event, hasVisibleWindows) {
   if (!hasVisibleWindows) { createWindow(); }
 });
 
-// Section 6
+app.on('will-finish-launching', function() {
+  app.on('open-file', function(event, file) {
+    var win = createWindow();
+    win.once('ready-to-show'), function() {
+      openFile(win, file);
+    }
+  });
+});
+
+// Section 6.3

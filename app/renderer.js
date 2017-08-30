@@ -1,4 +1,5 @@
 const marked = require('marked');
+const path = require('path');
 const { remote, ipcRenderer } = require('electron');
 const mainProcess = remote.require('./main.js');
 const currentWindow = remote.getCurrentWindow();
@@ -11,6 +12,9 @@ const revertButton = document.querySelector('#revert');
 const saveHtmlButton = document.querySelector('#save-html');
 const showFileButton = document.querySelector('#show-file');
 const openInDefaultButton = document.querySelector('#open-in-default');
+
+var filePath = null;
+var originalContent = '';
 
 function renderMarkdownToHtml(markdown) {
   htmlView.innerHTML = marked(markdown, { sanitize: true });
@@ -35,9 +39,24 @@ const createWindow = exports.createWindow = function() {
   return newWindow;
 };
 
+const updateUserInterface = function(isEdited) {
+  let title = 'Fire Sale';
+  if (filePath) {
+    title = `${path.basename(filePath)} - ${title}`;
+  }
+  if (isEdited) {
+    title = `${title} (Edited)`;
+  }
+  currentWindow.setTitle(title);
+  currentWindow.setDocumentEdited(isEdited);
+  saveMarkdownButton.disabled = !isEdited;
+  revertButton.disabled = !isEdited;
+};
+
 markdownView.addEventListener('keyup', function(event) {
   const currentContent = event.target.value;
   renderMarkdownToHtml(currentContent);
+  updateUserInterface(currentContent !== originalContent)
 });
 
 openFileButton.addEventListener('click', function() {
@@ -45,10 +64,29 @@ openFileButton.addEventListener('click', function() {
 });
 
 ipcRenderer.on('file-opened', function(event, file, content) {
+  filePath = file;
+  originalContent = content;
   markdownView.value = content;
   renderMarkdownToHtml(content);
+  updateUserInterface();
 });
 
-newFileButton.addEventListener('click', function(){
+newFileButton.addEventListener('click', function() {
   mainProcess.createWindow();
+});
+
+saveHtmlButton.addEventListener('click', function() {
+  mainProcess.saveHtml(currentWindow, htmlView.innerHTML);
+});
+
+saveMarkdownButton.addEventListener('click', function() {
+  console.log('HERE')
+  console.log(filePath);
+  console.log(typeof filePath);
+  mainProcess.saveMarkdown(currentWindow, filePath, markdownView.value);
+});
+
+revertButton.addEventListener('click', function() {
+  markdownView.value = originalContent;
+  renderMarkdownToHtml(originalContent);
 });
