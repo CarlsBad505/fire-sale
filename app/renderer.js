@@ -12,13 +12,18 @@ const revertButton = document.querySelector('#revert');
 const saveHtmlButton = document.querySelector('#save-html');
 const showFileButton = document.querySelector('#show-file');
 const openInDefaultButton = document.querySelector('#open-in-default');
+const getDraggedFile = (event) => event.dataTransfer.files[0];
 
 var filePath = null;
 var originalContent = '';
 
 function renderMarkdownToHtml(markdown) {
   htmlView.innerHTML = marked(markdown, { sanitize: true });
-}
+};
+
+function fileTypeIsSupported(file) {
+  return ['text/plain', 'text/markdown'].includes(file.type);
+};
 
 const createWindow = exports.createWindow = function() {
   let x, y;
@@ -80,13 +85,45 @@ saveHtmlButton.addEventListener('click', function() {
 });
 
 saveMarkdownButton.addEventListener('click', function() {
-  console.log('HERE')
-  console.log(filePath);
-  console.log(typeof filePath);
   mainProcess.saveMarkdown(currentWindow, filePath, markdownView.value);
 });
 
 revertButton.addEventListener('click', function() {
   markdownView.value = originalContent;
   renderMarkdownToHtml(originalContent);
+});
+
+document.addEventListener('dragstart', event => event.preventDefault());
+document.addEventListener('dragover', event => event.preventDefault());
+document.addEventListener('dragleave', event => event.preventDefault());
+document.addEventListener('drop', event => event.preventDefault());
+
+markdownView.addEventListener('dragover', function(event) {
+
+  var file = getDraggedFile(event);
+  console.log("___FILE___");
+  console.log(file);
+  console.log("___DATA TRANSFER___");
+  console.log(event.dataTransfer);
+  if (fileTypeIsSupported(file)) {
+    markdownView.classList.add('drag-over');
+  } else {
+    markdownView.classList.add('drag-error');
+  }
+});
+
+markdownView.addEventListener('dragleave', function() {
+  markdownView.classList.remove('drag-over');
+  markdownView.classList.remove('drag-error');
+});
+
+markdownView.addEventListener('drop', function(event) {
+  var file = getDraggedFile(event);
+  if (fileTypeIsSupported(file)) {
+    mainProcess.openFile(currentWindow, file.path);
+  } else {
+    alert('File type not supported');
+  }
+  markdownView.classList.remove('drag-over');
+  markdownView.classList.remove('drag-error');
 });

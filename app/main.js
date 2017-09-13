@@ -100,4 +100,4 @@ app.on('will-finish-launching', function() {
   });
 });
 
-// Section 6.3
+// Section 6.4
